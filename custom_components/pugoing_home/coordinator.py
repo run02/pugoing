@@ -22,11 +22,22 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
 
     config_entry: IntegrationBlueprintConfigEntry
 
+    # async def _async_update_data(self) -> Any:
+    #     """Update data via library."""
+    #     try:
+    #         return await self.config_entry.runtime_data.client.async_get_data()
+    #     except IntegrationBlueprintApiClientAuthenticationError as exception:
+    #         raise ConfigEntryAuthFailed(exception) from exception
+    #     except IntegrationBlueprintApiClientError as exception:
+    #         raise UpdateFailed(exception) from exception
+        
     async def _async_update_data(self) -> Any:
-        """Update data via library."""
+        """统一拉取并缓存所有设备数据。"""
         try:
+            # 一行调用，返回的 data 包含 devices_by_type & token
             return await self.config_entry.runtime_data.client.async_get_data()
-        except IntegrationBlueprintApiClientAuthenticationError as exception:
-            raise ConfigEntryAuthFailed(exception) from exception
-        except IntegrationBlueprintApiClientError as exception:
-            raise UpdateFailed(exception) from exception
+        except IntegrationBlueprintApiClientAuthenticationError as exc:
+            raise ConfigEntryAuthFailed(exc) from exc
+        except IntegrationBlueprintApiClientError as exc:
+            raise UpdateFailed(exc) from exc
+    

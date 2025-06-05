@@ -23,10 +23,9 @@ urls = {
 }
 
 # 选择环境 ('domestic' 或 'international')
-# environment = "international"
-environment = 'domestic'
+environment = "domestic"
 selectedUrls = urls[environment]
-
+api_version = "old"
 
 class Dpanel(str, Enum):
     LAMP = "Lamp"

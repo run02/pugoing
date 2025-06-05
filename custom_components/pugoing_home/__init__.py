@@ -1,3 +1,4 @@
+# __init__.py
 """
 Custom integration to integrate integration_blueprint with Home Assistant.
 
@@ -25,9 +26,10 @@ if TYPE_CHECKING:
     from .data import IntegrationBlueprintConfigEntry
 
 PLATFORMS: list[Platform] = [
-    Platform.SENSOR,
-    Platform.BINARY_SENSOR,
-    Platform.SWITCH,
+    # Platform.SENSOR,
+    # Platform.BINARY_SENSOR,
+    # Platform.SWITCH,
+    Platform.LIGHT,
 ]
 
 
