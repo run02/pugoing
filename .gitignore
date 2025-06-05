@@ -1,6 +1,14 @@
+tmp
+script/setup
+
+custom_components/example_light
+custom_components/detailed_hello_world_push
+custom_components/demo_virtual
+
+
 /config
 config2/*
-tmp
+
 tests/testing_config/deps
 tests/testing_config/home-assistant.log*
 
