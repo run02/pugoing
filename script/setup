@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Setups the repository.
+# Setups the repository using Conda (Python 3.13)
 
 # Stop on errors
 set -e
@@ -16,28 +16,44 @@ fi
 
 mkdir -p config
 
-if [ ! -n "$VIRTUAL_ENV" ]; then
-  if [ -x "$(command -v uv)" ]; then
-    uv venv venv
-  else
-    python3 -m venv venv
+# Create and activate Conda environment with Python 3.13
+# 检查当前是否是 base 环境
+if [ "$CONDA_DEFAULT_ENV" = "base" ]; then
+  ENV_NAME="ha-env"
+  echo "You're in 'base'. Creating and switching to isolated environment: $ENV_NAME"
+
+  # 创建新环境（如果不存在）
+  if ! conda env list | grep -q "$ENV_NAME"; then
+    conda create -y -n "$ENV_NAME" python=3.13
   fi
-  source venv/bin/activate
+
+  conda activate "$ENV_NAME"
+else
+  echo "Conda environment already active: $CONDA_DEFAULT_ENV"
 fi
 
-if ! [ -x "$(command -v uv)" ]; then
-  python3 -m pip install uv
+
+# Install uv if not installed
+if ! command -v uv &> /dev/null; then
+  echo "Installing uv..."
+  pip install uv
 fi
 
+# Install requirements via bootstrap
 script/bootstrap
 
+# Install pre-commit and editable package
 pre-commit install
 uv pip install -e . --config-settings editable_mode=compat --constraint homeassistant/package_constraints.txt
+
+# Setup translation support
 python3 -m script.translations develop --all
 
+# Create default config
 hass --script ensure_config -c config
 
-if ! grep -R "logger" config/configuration.yaml >> /dev/null;then
+# Add default logging config if missing
+if ! grep -R "logger" config/configuration.yaml > /dev/null; then
 echo "
 logger:
   default: info
