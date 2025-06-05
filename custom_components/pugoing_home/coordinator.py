@@ -22,14 +22,6 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
 
     config_entry: IntegrationBlueprintConfigEntry
 
-    # async def _async_update_data(self) -> Any:
-    #     """Update data via library."""
-    #     try:
-    #         return await self.config_entry.runtime_data.client.async_get_data()
-    #     except IntegrationBlueprintApiClientAuthenticationError as exception:
-    #         raise ConfigEntryAuthFailed(exception) from exception
-    #     except IntegrationBlueprintApiClientError as exception:
-    #         raise UpdateFailed(exception) from exception
         
     async def _async_update_data(self) -> Any:
         """统一拉取并缓存所有设备数据。"""

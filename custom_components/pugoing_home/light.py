@@ -40,23 +40,29 @@ if TYPE_CHECKING:
 # -----------------------------------------------------------------------------
 # Setup
 # -----------------------------------------------------------------------------
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: IntegrationBlueprintConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Create Light entities for every Lamp device."""
-    coordinator: BlueprintDataUpdateCoordinator = entry.runtime_data.coordinator
+known_ids: set[str] = set()
 
-    lamp_devices: list[dict[str, Any]] = coordinator.data.get("devices_by_type", {}).get(
-        "Lamp", []
-    )
+async def async_setup_entry(hass, entry, async_add_entities):
+    coordinator = entry.runtime_data.coordinator
+    known_ids.update(dev["yid"] for dev in coordinator.data["devices_by_type"].get("Lamp", []))
 
-    entities: list[PuGoingLampLight] = [
-        PuGoingLampLight(coordinator, dev) for dev in lamp_devices
-    ]
-
+    # 初次添加实体
+    entities = [PuGoingLampLight(coordinator, dev) for dev in coordinator.data["devices_by_type"]["Lamp"]]
     async_add_entities(entities)
+
+    # 监听 coordinator 数据更新，增量添加新设备
+    async def _async_new_lamps():
+        new_entities = []
+        for dev in coordinator.data["devices_by_type"].get("Lamp", []):
+            if dev["yid"] not in known_ids:
+                known_ids.add(dev["yid"])
+                new_entities.append(PuGoingLampLight(coordinator, dev))
+
+        if new_entities:
+            async_add_entities(new_entities)
+
+    coordinator.async_add_listener(_async_new_lamps)
+
 
 
 # -----------------------------------------------------------------------------
@@ -66,6 +72,7 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
     """Representation of a single Lamp device."""
 
     _attr_supported_color_modes = {ColorMode.ONOFF}
+    _attr_color_mode = ColorMode.ONOFF
 
     def __init__(
         self, coordinator: "BlueprintDataUpdateCoordinator", device: dict[str, Any]
@@ -85,8 +92,6 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
     @staticmethod
     def _parse_state(device: dict[str, Any]) -> bool:
         """Return True if the lamp is currently reported as ON."""
-        # `dinfo` == "关" / "开" – you may need to adjust if your backend
-        # uses other strings or a binary flag.
         return str(device.get("dinfo", "")).startswith("开")
 
     def _current_device_dict(self) -> dict[str, Any] | None:
@@ -100,7 +105,7 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
     # Home-Assistant required properties
     # ---------------------------------------------------------------------
     @property
-    def is_on(self) -> bool:  # noqa: D401 “is …” preferred
+    def is_on(self) -> bool:
         """Return True if light is on."""
         dev = self._current_device_dict()
         if dev is not None:
@@ -108,34 +113,36 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
         return self._state
 
     @property
-    def available(self) -> bool:  # noqa: D401
+    def available(self) -> bool:
         """Entity is available only if device still shows up in the cloud list."""
         return self._current_device_dict() is not None
 
     # ---------------------------------------------------------------------
     # Control methods
     # ---------------------------------------------------------------------
-    async def async_turn_on(self, **kwargs: Any) -> None:  # noqa: D401
+    async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the lamp on (optionally with brightness)."""
-        # brightness: int | None = kwargs.get(ATTR_BRIGHTNESS)
-        # TODO: adjust client call if your backend expects 0-100 or 0-255
         await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
-            self._device_id, on=True,sn=self._device_sn, # brightness=brightness
+            self._device_id, on=True, sn=self._device_sn
         )
-        await self.coordinator.async_request_refresh()
+        self._state = True  # 临时更新
+        # self.async_write_ha_state()
+        # await self.coordinator.async_request_refresh()
 
-    async def async_turn_off(self, **kwargs: Any) -> None:  # noqa: D401, ARG002
+    async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the lamp off."""
         await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
-            self._device_id, on=False,sn=self._device_sn,
+            self._device_id, on=False, sn=self._device_sn
         )
-        await self.coordinator.async_request_refresh()
+        self._state = False  # 临时更新
+        # self.async_write_ha_state()
+        # await self.coordinator.async_request_refresh()
 
     # ---------------------------------------------------------------------
     # Extra attributes (optional, shown under «Device Info»)
     # ---------------------------------------------------------------------
     @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:  # noqa: D401
+    def extra_state_attributes(self) -> dict[str, Any] | None:
         dev = self._current_device_dict()
         if dev is None:
             return None
