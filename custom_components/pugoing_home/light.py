@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Set
 
 from homeassistant.components.light import (
@@ -16,7 +17,8 @@ from homeassistant.components.light import (
 from homeassistant.helpers import entity_registry as er
 
 from .entity import IntegrationBlueprintEntity
-from .const import DOMAIN  # 自己集成的域名
+from .const import DOMAIN, LAMP_STATE_DEBOUNCE_SECONDS
+from .pugoing_api.error import PuGoingAPIError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -97,6 +99,7 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
         self._attr_unique_id = f"pugoing_lamp_{self._device_id}"
         self._attr_name = device.get("dname", "Lamp")
         self._state: bool = self._parse_state(device)
+        self._last_manual_control: datetime | None = None
 
     # ---------- helpers ---------- #
     @staticmethod
@@ -112,6 +115,10 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
     # ---------- required props ----- #
     @property
     def is_on(self) -> bool:
+        if self._last_manual_control:
+            if datetime.now() - self._last_manual_control < timedelta(seconds=LAMP_STATE_DEBOUNCE_SECONDS):
+                return self._state
+
         latest = self._latest()
         if latest is not None:
             self._state = self._parse_state(latest)
@@ -123,18 +130,26 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
 
     # ---------- control ------------ #
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
-            self._device_id, on=True, sn=self._device_sn
-        )
-        self._state = True
-        self.async_write_ha_state()
+        try:
+            await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
+                self._device_id, on=True, sn=self._device_sn
+            )
+            self._state = True
+            self._last_manual_control = datetime.now()
+            self.async_write_ha_state()
+        except PuGoingAPIError as e:
+            _LOGGER.warning("Failed to turn on lamp %s: %s", self._device_id, e)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
-            self._device_id, on=False, sn=self._device_sn
-        )
-        self._state = False
-        self.async_write_ha_state()
+        try:
+            await self.coordinator.config_entry.runtime_data.client.async_set_lamp_state(
+                self._device_id, on=False, sn=self._device_sn
+            )
+            self._state = False
+            self._last_manual_control = datetime.now()
+            self.async_write_ha_state()
+        except PuGoingAPIError as e:
+            _LOGGER.warning("Failed to turn off lamp %s: %s", self._device_id, e)
 
     # ---------- extra attrs -------- #
     @property
