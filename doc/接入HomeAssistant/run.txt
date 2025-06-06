@@ -1,0 +1,7 @@
+docker run -d \
+  --name homeassistant \
+  --restart unless-stopped \
+  -e TZ=Asia/Shanghai \
+  -v C:/Users/Ryan/Desktop/work/dockers/home_assistant/config:/config \
+  --network host \
+  ghcr.io/home-assistant/home-assistant:stable
