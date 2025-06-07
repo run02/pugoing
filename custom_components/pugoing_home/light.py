@@ -5,19 +5,19 @@ Dynamic add/remove Lamp entities using DataUpdateCoordinator.
 
 from __future__ import annotations
 
-import asyncio
-import logging
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, List, Set
+import logging
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.components.light import (
-    ColorMode,
-    LightEntity,
-)
+from homeassistant.components.light import ColorMode, LightEntity
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
-from .entity import IntegrationBlueprintEntity
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+)
 from .const import DOMAIN, LAMP_STATE_DEBOUNCE_SECONDS
+from .entity import IntegrationBlueprintEntity
 from .pugoing_api.error import PuGoingAPIError
 
 if TYPE_CHECKING:
@@ -28,10 +28,7 @@ if TYPE_CHECKING:
     from .data import IntegrationBlueprintConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
-from homeassistant.helpers import (            # ★ 新增
-    device_registry as dr,                     # ★
-    area_registry as ar,                       # ★
-)
+
 
 # ----------------------------- setup ------------------------------------ #
 
@@ -43,13 +40,13 @@ async def async_setup_entry(
     """Create Light entities for every Lamp device and listen for changes."""
     coordinator: BlueprintDataUpdateCoordinator = entry.runtime_data.coordinator
 
-    known_ids: Set[str] = set()
+    known_ids: set[str] = set()
 
-    def _create_entity(dev: Dict[str, Any]):
+    def _create_entity(dev: dict[str, Any]):
         return PuGoingLampLight(coordinator, dev)
 
     async def _async_add_initial() -> None:
-        lamps: List[dict] = coordinator.data.get("devices_by_type", {}).get("Lamp", [])
+        lamps: list[dict] = coordinator.data.get("devices_by_type", {}).get("Lamp", [])
         entities = []
         for dev in lamps:
             yid = dev["yid"]
@@ -63,8 +60,8 @@ async def async_setup_entry(
 
     # ---------------- listener: add & remove ---------------------------#
     def _handle_lamp_changes() -> None:  # must be sync for coordinator listener
-        lamps_now: List[dict] = coordinator.data.get("devices_by_type", {}).get("Lamp", [])
-        current_ids: Set[str] = {dev["yid"] for dev in lamps_now}
+        lamps_now: list[dict] = coordinator.data.get("devices_by_type", {}).get("Lamp", [])
+        current_ids: set[str] = {dev["yid"] for dev in lamps_now}
 
         # Detect new lamps
         new_ids = current_ids - known_ids
@@ -96,7 +93,7 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
     _attr_supported_color_modes = {ColorMode.ONOFF}
     _attr_color_mode = ColorMode.ONOFF
 
-    def __init__(self, coordinator: "BlueprintDataUpdateCoordinator", device: dict[str, Any]):
+    def __init__(self, coordinator: BlueprintDataUpdateCoordinator, device: dict[str, Any]):
         super().__init__(coordinator)
         self._device_id = device["yid"]
         self._device_sn = device.get("sn", self._device_id)
@@ -167,7 +164,7 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
             "room": dev.get("dloca"),
             "online": dev.get("online"),
         }
-        
+
     @property
     def device_info(self) -> DeviceInfo:
         """让每盏灯各自成为一个设备。"""
