@@ -29,11 +29,12 @@ except ImportError:  # pragma: no cover – HA ≤2024.3
     UnitOfIlluminance = None  # type: ignore
 
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers import area_registry as ar, device_registry as dr
 from homeassistant.helpers import (
     area_registry as ar,
     device_registry as dr,
+    entity_registry as er,   # ← 增加 entity_registry 别名 er
 )
+
 from .const import DOMAIN
 from .entity import IntegrationBlueprintEntity
 
@@ -106,7 +107,7 @@ async def async_setup_entry(
         removed_ids = known_ids - current_ids
         if removed_ids:
             dev_reg = dr.async_get(hass)
-            ent_reg = hass.helpers.entity_registry.async_get(hass)
+            ent_reg = er.async_get(hass)
             for yid in removed_ids:
                 for kind in ("tem", "hum", "lum"):
                     unique_id = f"{yid}_{kind}"
