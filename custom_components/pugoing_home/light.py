@@ -202,3 +202,4 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
         device   = dev_reg.async_get_device({(DOMAIN, self._device_id)})
         if device and device.area_id != area.id:
             dev_reg.async_update_device(device.id, area_id=area.id)
+
