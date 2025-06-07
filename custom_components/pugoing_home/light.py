@@ -15,7 +15,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.helpers import entity_registry as er
-
+from homeassistant.helpers.device_registry import DeviceInfo
 from .entity import IntegrationBlueprintEntity
 from .const import DOMAIN, LAMP_STATE_DEBOUNCE_SECONDS
 from .pugoing_api.error import PuGoingAPIError
@@ -28,6 +28,10 @@ if TYPE_CHECKING:
     from .data import IntegrationBlueprintConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
+from homeassistant.helpers import (            # ★ 新增
+    device_registry as dr,                     # ★
+    area_registry as ar,                       # ★
+)
 
 # ----------------------------- setup ------------------------------------ #
 
@@ -163,3 +167,38 @@ class PuGoingLampLight(IntegrationBlueprintEntity, LightEntity):
             "room": dev.get("dloca"),
             "online": dev.get("online"),
         }
+        
+    @property
+    def device_info(self) -> DeviceInfo:
+        """让每盏灯各自成为一个设备。"""
+        dev = self._latest() or {}
+        return DeviceInfo(
+            identifiers={(DOMAIN, self._device_id)},            # ← 唯一
+            name=dev.get("dname") or f"Lamp {self._device_id}", # 避免 undefined
+            manufacturer="PuGoing",
+            model=dev.get("dpanel", "Lamp"),
+            # sw_version=dev.get("fw", ""),                       # 有的话
+            # via_device=(DOMAIN, "pugoing_gateway"),             # 如果你有网关，可留空
+            # suggested_area   =dev.get("dloca") or None,   # 👈 这里
+            # configuration_url=f"http://47.123.5.29:18021/",
+        )
+     # ---------- HA 回调：实体已加入 ---------------- #
+    async def async_added_to_hass(self) -> None:        # ★ 新增
+        """实体注册完成后，自动把设备归到对应区域。"""
+        await super().async_added_to_hass()             # 保留父类逻辑
+
+        area_name = (self._latest() or {}).get("dloca") # ① 取 API 里的房间名
+        if not area_name:
+            return
+
+        # ② 取 / 创建 Area
+        area_reg = ar.async_get(self.hass)
+        area     = area_reg.async_get_area_by_name(area_name)
+        if area is None:
+            area = area_reg.async_create(area_name)
+
+        # ③ 更新设备的 area_id
+        dev_reg  = dr.async_get(self.hass)
+        device   = dev_reg.async_get_device({(DOMAIN, self._device_id)})
+        if device and device.area_id != area.id:
+            dev_reg.async_update_device(device.id, area_id=area.id)
