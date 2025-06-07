@@ -211,6 +211,7 @@ class ButlerTempSensor(ButlerBaseSensor):
 
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_name = "温度"
 
     def __init__(self, coordinator, dev):
         super().__init__(coordinator, dev, "tem")
@@ -221,6 +222,7 @@ class ButlerHumiditySensor(ButlerBaseSensor):
 
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_name = "湿度" 
 
     def __init__(self, coordinator, dev):
         super().__init__(coordinator, dev, "hum")
@@ -233,6 +235,7 @@ class ButlerLumSensor(ButlerBaseSensor):
     _attr_native_unit_of_measurement = (
         UnitOfIlluminance.LUX if UnitOfIlluminance else "lx"  # HA <2024.4 fallback
     )
+    _attr_name = "光照"
 
     def __init__(self, coordinator, dev):
         super().__init__(coordinator, dev, "lum")
