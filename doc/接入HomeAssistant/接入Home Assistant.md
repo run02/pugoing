@@ -1,5 +1,11 @@
 # 接入Home Assistant
 
+## 商用
+
+https://github.com/home-assistant/core/blob/dev/LICENSE.md
+
+HA的LICENCE是Apache License 2.0, 可以商用
+
 ## 好处
 
 接入Home Assistant, 用户可以享受到Home Assistant丰富的生态. Home Assistant也支持集成Alexa, Google Assistant, HomeKit Bridge这些.
