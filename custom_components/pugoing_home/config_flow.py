@@ -74,6 +74,8 @@ class BlueprintFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                             type=selector.TextSelectorType.PASSWORD,
                         ),
                     ),
+                    vol.Optional("my_field"): str,
+                    vol.Optional("debug"): bool,
                 },
             ),
             errors=_errors,
