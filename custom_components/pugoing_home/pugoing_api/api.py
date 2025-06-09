@@ -31,7 +31,7 @@ async def fetch_device_by_yid(token, sn, yid) -> dict:
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(
-                selectedUrls["fetchDeviceByYid"], json=data, headers=headers, timeout=5
+                selectedUrls["fetchDeviceByYid"], json=data, headers=headers, timeout=15
             ) as response:
                 result = await response.json()
                 if result.get("ack") == 1:
@@ -61,7 +61,7 @@ async def fetch_sn_list(token):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            selectedUrls["fetchSnList"], json=data, headers=headers, timeout=5
+            selectedUrls["fetchSnList"], json=data, headers=headers, timeout=15
         ) as response:
             result = await response.json()
             if result.get("ack") == 1:
@@ -77,7 +77,7 @@ async def fetch_devices_by_room(token, sn, room_name):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            selectedUrls["fetchDevicesByRoom"], json=data, headers=headers, timeout=5
+            selectedUrls["fetchDevicesByRoom"], json=data, headers=headers, timeout=15
         ) as response:
             result = await response.json()
             if result.get("ack") == 1:
@@ -98,7 +98,7 @@ async def control_device(sn, fm, dvcm, dkey, yid, token, digv=None):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            selectedUrls["controlDevice"], json=data, headers=headers, timeout=5
+            selectedUrls["controlDevice"], json=data, headers=headers, timeout=15
         ) as response:
             result = await response.json()
             if result.get("ack") == 0:
@@ -119,7 +119,7 @@ async def fetch_sn_and_room_list(token):
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            selectedUrls["fetchSnAndRoomList"], json=data, headers=headers, timeout=5
+            selectedUrls["fetchSnAndRoomList"], json=data, headers=headers, timeout=15
         ) as response:
             result = await response.json()
             if result.get("ack") == 1:
@@ -206,7 +206,7 @@ async def login(username: str, password: str):
     data = {"account": username, "pwd": password}
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(selectedUrls["login"], json=data, timeout=5) as response:
+        async with session.post(selectedUrls["login"], json=data, timeout=15) as response:
             if response.status != 200:
                 lib_logger.error("Login request failed with status code: %s", response.status)
                 raise Exception(f"Login request failed with status code: {response.status}")
